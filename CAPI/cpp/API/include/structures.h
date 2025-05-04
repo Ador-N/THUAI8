@@ -48,9 +48,9 @@ namespace THUAI8
 
     enum class PlayerTeam : unsigned char
     {
-        NullTeam = 0,
-        BuddhistsTeam = 1,
-        MonstersTeam = 2,
+        BuddhistsTeam = 0,
+        MonstersTeam = 1,
+        NullTeam = 2,
     };
 
     enum class PlayerType : unsigned char
@@ -64,21 +64,20 @@ namespace THUAI8
     {
         NullCharacterType = 0,
 
-        Camp1Character1 = 1,
-        Camp1Character2 = 2,
-        Camp1Character3 = 3,
-        Camp1Character4 = 4,
-        Camp1Character5 = 5,
-        Camp1Character6 = 6,
-
-        Camp2Character1 = 7,
-        Camp2Character2 = 8,
-        Camp2Character3 = 9,
-        Camp2Character4 = 10,
-        Camp2Character5 = 11,
-        Camp2Character6 = 12,
+        TangSeng = 1,
+        SunWukong = 2,
+        ZhuBajie = 3,
+        ShaWujing = 4,
+        BaiLongma = 5,
+        Monkid = 6,
+        JiuLing = 7,
+        HongHaier = 8,
+        NiuMowang = 9,
+        TieShan = 10,
+        ZhiZhujing = 11,
+        Pawn = 12,
     };
-
+ 
     enum class EquipmentType : unsigned char
     {
         NullEquipmentType = 0,
@@ -215,7 +214,7 @@ namespace THUAI8
         int64_t playerID;
 
         CharacterType characterType;
-
+        
         CharacterState characterActiveState;
 
         bool isBlind;
@@ -368,18 +367,19 @@ namespace THUAI8
 
     inline std::map<CharacterType, std::string> characterTypeDict{
         {CharacterType::NullCharacterType, "NullCharacterType"},
-        {CharacterType::Camp1Character1, "Camp1Character1"},
-        {CharacterType::Camp1Character2, "Camp1Character2"},
-        {CharacterType::Camp1Character3, "Camp1Character3"},
-        {CharacterType::Camp1Character4, "Camp1Character4"},
-        {CharacterType::Camp1Character5, "Camp1Character5"},
-        {CharacterType::Camp1Character6, "Camp1Character6"},
-        {CharacterType::Camp2Character1, "Camp2Character1"},
-        {CharacterType::Camp2Character2, "Camp2Character2"},
-        {CharacterType::Camp2Character3, "Camp2Character3"},
-        {CharacterType::Camp2Character4, "Camp2Character4"},
-        {CharacterType::Camp2Character5, "Camp2Character5"},
-        {CharacterType::Camp2Character6, "Camp2Character6"},
+        {CharacterType::TangSeng, "TangSeng"},
+        {CharacterType::SunWukong, "SunWukong"},
+        {CharacterType::ZhuBajie, "ZhuBajie"},
+        {CharacterType::ShaWujing, "ShaWujing"},
+        {CharacterType::BaiLongma, "BaiLongma"},
+        {CharacterType::Monkid, "Monkid"},
+        {CharacterType::JiuLing, "JiuLing"},
+        {CharacterType::JiuLing, "JiuLing"},
+        {CharacterType::HongHaier, "HongHaier"},
+        {CharacterType::NiuMowang, "NiuMowang"},
+        {CharacterType::TieShan, "TieShan"},
+        {CharacterType::ZhiZhujing, "ZhiZhujing"},
+        {CharacterType::Pawn, "Pawn"},
     };
 
     inline std::map<CharacterState, std::string> characterStateDict{

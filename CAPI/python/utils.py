@@ -133,6 +133,7 @@ class Proto2THUAI8:
         MessageType.HEALING: THUAI8.CharacterState.Healing,
         MessageType.BERSERK: THUAI8.CharacterState.Berserk,
         MessageType.BURNED: THUAI8.CharacterState.Burned,
+        MessageType.DECEASED: THUAI8.CharacterState.Deceased,
     }
 
     economyResourceTypeDict: Final[dict] = {
@@ -267,9 +268,13 @@ class Proto2THUAI8:
         gameInfoMsg: Message2Clients.MessageOfGameInfo,
     ) -> THUAI8.GameInfo:
         gameInfo = THUAI8.GameInfo()
-        gameInfo.gameState = Proto2THUAI8.gameStateDict[gameInfoMsg.game_state]
-        gameInfo.time = gameInfoMsg.time
-        gameInfo.placeType = Proto2THUAI8.placeTypeDict[gameInfoMsg.place_type]
+        gameInfo.gameSTime = gameInfoMsg.game_time
+        gameInfo.buddhistsTeamEconomy = gameInfoMsg.buddhists_team_economy
+        gameInfo.buddhistsTeamScore = gameInfoMsg.buddhists_team_score
+        gameInfo.buddhistsTeamHeroHp = gameInfoMsg.buddhists_hero_hp
+        gameInfo.monstersEconomy = gameInfoMsg.monsters_team_economy
+        gameInfo.monstersTeamScore = gameInfoMsg.monsters_team_score
+        gameInfo.monstersTeamHeroHp = gameInfoMsg.monsters_hero_hp
         return gameInfo
 
     @staticmethod
@@ -477,9 +482,15 @@ class THUAI82Proto:
 
     @staticmethod
     def THUAI82ProtobufMoveMsg(
+<<<<<<< HEAD:CAPI/python/utils.py
         character: int, angle: float, time: int, team: int
     ) -> MessageType.MoveMsg:
         moveMsg = MessageType.MoveMsg()
+=======
+        team: int, character: int, time: int, angle: float
+    ) -> Message2Server.MoveMsg:
+        moveMsg = Message2Server.MoveMsg()
+>>>>>>> 5a9477a584e532a2c785cc7dfeceeb608eacfb19:CAPI/python/PyAPI/utils.py
         moveMsg.character_id = character
         moveMsg.angle = angle
         moveMsg.time_in_milliseconds = time
@@ -525,12 +536,25 @@ class THUAI82Proto:
 
     @staticmethod
     def THUAI82ProtobufCharacterMsg(
+<<<<<<< HEAD:CAPI/python/utils.py
         character_id: int, team_id: int, character_type: THUAI8.CharacterType
     ) -> MessageType.CharacterMsg:
         characterMsg = MessageType.CharacterMsg()
         characterMsg.character_id = character_id
         characterMsg.team_id = team_id
         characterMsg.character_type = character_type
+=======
+        character_id: int,
+        team_id: int,
+        character_type: THUAI8.CharacterType,
+        side_flag: int,
+    ) -> Message2Server.CharacterMsg:
+        characterMsg = Message2Server.CharacterMsg()
+        characterMsg.character_id = character_id
+        characterMsg.team_id = team_id
+        characterMsg.character_type = THUAI82Proto.characterTypeDict[character_type]
+        characterMsg.side_flag = side_flag
+>>>>>>> 5a9477a584e532a2c785cc7dfeceeb608eacfb19:CAPI/python/PyAPI/utils.py
         return characterMsg
 
     @staticmethod
@@ -563,3 +587,13 @@ class THUAI82Proto:
         attackMsg.attacked_character_id = attacked_character_id
         attackMsg.attack_range = attack_range
         return attackMsg
+
+    @staticmethod
+    def THUAI82ProtobufRecoverMsg(
+        character_id: int, team_id: int, recover: int
+    ) -> Message2Server.RecoverMsg:
+        recoverMsg = Message2Server.RecoverMsg()
+        recoverMsg.character_id = character_id
+        recoverMsg.team_id = team_id
+        recoverMsg.recover = recover
+        return recoverMsg

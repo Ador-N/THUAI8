@@ -14,10 +14,10 @@
 CharacterDebugAPI::CharacterDebugAPI(ILogic& logic, bool file, bool print, bool warnOnly, int32_t CharacterID) :
     logic(logic)
 {
-    std::string fileName = "logs/api-" + std::to_string(playerID) + "-log.txt";
+    std::string fileName = "logs/api-" + std::to_string(TeamID) + "-" + std::to_string(CharacterID) + "log.txt";
     auto fileLogger = std::make_shared<spdlog::sinks::basic_file_sink_mt>(fileName, true);
     auto printLogger = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-    std::string pattern = "[api " + std::to_string(playerID) + "] [%H:%M:%S.%e] [%l] %v";
+    std::string pattern = "[api " + std::to_string(TeamID) + std::to_string(CharacterID) + "] [%H:%M:%S.%e] [%l] %v";
     fileLogger->set_pattern(pattern);
     printLogger->set_pattern(pattern);
     if (file)
@@ -99,9 +99,10 @@ bool CharacterDebugAPI::Wait()
         return logic.WaitThread();
 }
 
-std::futrue<bool> CharacterDebugAPI::Move(int64_t timeInMilliseconds, double angleInRadian)
+// 修改后的实现需要匹配接口参数 (int32_t speed, int64_t timeInMilliseconds, ...)
+std::future<bool> CharacterDebugAPI::Move(int64_t timeInMilliseconds, double angleInRadian)
 {
-    logger->info("Move: time = {}ms, angle = {}rad, called at {}ms", timeInMilliseconds, angleInRadian, Time::TimeSinceStart(startPoint));
+    logger->info("Move: timeInMilliseconds = {}, angleInRadian = {}, called at {}ms", timeInMilliseconds, angleInRadian, Time::TimeSinceStart(startPoint));
     return std::async(std::launch::async, [=]()
                       { auto result = logic.Move(timeInMilliseconds, angleInRadian);
                         if (!result)
@@ -109,44 +110,47 @@ std::futrue<bool> CharacterDebugAPI::Move(int64_t timeInMilliseconds, double ang
                         return result; });
 }
 
+// 下方所有方向移动需要添加speed参数并调整调用
 std::future<bool> CharacterDebugAPI::MoveDown(int64_t timeInMilliseconds)
 {
-    return Move(timeInMilliseconds, 0);
+    return Move(timeInMilliseconds, PI * 1.5);  // 参数顺序：speed, time, angle
 }
 
 std::future<bool> CharacterDebugAPI::MoveRight(int64_t timeInMilliseconds)
 {
-    return Move(timeInMilliseconds, PI * 0.5);
+    return Move(timeInMilliseconds, 0);  // 补充speed参数
 }
 
 std::future<bool> CharacterDebugAPI::MoveUp(int64_t timeInMilliseconds)
 {
-    return Move(timeInMilliseconds, PI);
+    return Move(timeInMilliseconds, PI / 2);  // 调整角度定义
 }
 
 std::future<bool> CharacterDebugAPI::MoveLeft(int64_t timeInMilliseconds)
 {
-    return Move(timeInMilliseconds, PI * 1.5);
+    return Move(timeInMilliseconds, PI);
 }
 
-std::future<bool> CharacterDebugAPI::Skill_Attack(double angleInRadian)
+std::future<bool> CharacterDebugAPI::Skill_Attack(double angle)
 {
-    logger->info("Skill_Attack: angle = {}rad, called at {}ms", angleInRadian, Time::TimeSinceStart(startPoint));
+    logger->info("Skill_Attack: player={}, teamID={}, called@{}ms", this->GetSelfInfo()->playerID, this->GetSelfInfo()->teamID, Time::TimeSinceStart(startPoint));
     return std::async(std::launch::async, [=]()
-                      { auto result = logic.SkillAttack(angleInRadian);
-                        if (!result)
-                            logger->warn("Skill_Attack: failed at {}ms", Time::TimeSinceStart(startPoint));
-                        return result; });
+                      {
+        auto result = logic.Skill_Attack(this->GetSelfInfo()->playerID,this->GetSelfInfo()->teamID,angle); // 改为传递玩家ID
+        if (!result)
+            logger->warn("Skill_Attack failed@{}ms", Time::TimeSinceStart(startPoint));
+        return result; });
 }
 
-std::future<bool> CharacterDebugAPI::Common_Attack(double angleInRadian)
+std::future<bool> CharacterDebugAPI::Common_Attack(int64_t attackedPlayerID)
 {
-    logger->info("Common_Attack: angle = {}rad, called at {}ms", angleInRadian, Time::TimeSinceStart(startPoint));
+    logger->info("characterID={}, teamID={}, Common_Attack: target={}, called@{}ms", this->GetSelfInfo()->playerID, this->GetSelfInfo()->teamID, attackedPlayerID, Time::TimeSinceStart(startPoint));
     return std::async(std::launch::async, [=]()
-                      { auto result = logic.CommonAttack(angleInRadian);
-                        if (!result)
-                            logger->warn("Common_Attack: failed at {}ms", Time::TimeSinceStart(startPoint));
-                        return result; });
+                      {
+        auto result = logic.Common_Attack(this->GetSelfInfo()->teamID,this->GetSelfInfo()->playerID,1-this->GetSelfInfo()->teamID, attackedPlayerID); // 改为传递玩家ID
+        if (!result)
+            logger->warn("Common_Attack failed@{}ms", Time::TimeSinceStart(startPoint));
+        return result; });
 }
 
 std::future<bool> CharacterDebugAPI::Recover(int64_t recover)
@@ -326,8 +330,18 @@ std::CharacterDebugAPI::PrintSelfInfo() const
 {
     auto self = logic.CharacterGetSelfInfo();
     logger->info("******Self Info******");
-    logger->info("type={}, characterID={}, GUID={}, x={}, y={}", THUAI8::characterTypeDict[self->characterType], self->characterID, self->guid, self->x, self->y);
-    logger->info("state={},speed={}, view range={},facing direction={}", THUAI8::characterStateDict[self->characterState], self->speed, self->viewRange, self->facingDirection);
+
+    // 确保字典返回值是 std::string
+    std::string characterType = THUAI8::characterTypeDict.at(self->characterType);
+    std::string characterActiveState = THUAI8::characterStateDict.at(self->characterActiveState);
+    std::string characterPassiveState = THUAI8::characterStateDict.at(self->characterPassiveState);
+
+    // 打印基本信息
+    logger->info("type={}, characterID={}, teamID={}, GUID={}, x={}, y={}", characterType, self->playerID, self->teamID, self->guid, self->x, self->y);
+
+    // 打印状态信息
+    logger->info("activestate={}, passivestate={}, speed={}, view range={}, facing direction={}", characterActiveState, characterPassiveState, self->speed, self->viewRange, self->facingDirection);
+
     logger->info("************************\n");
 }
 

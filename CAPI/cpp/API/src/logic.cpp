@@ -260,7 +260,13 @@ bool Logic::BuildCharacter(THUAI8::CharacterType CharacterType, int32_t birthInd
 //     return pComm->Produce(playerID, teamID);
 // }
 
-bool Logic::Rebuild(THUAI8::ConstructionType constructionType)
+bool Logic::Move(int64_t moveTimeInMilliseconds, double angle)
+{
+    logger->debug("Called Move");
+    return pComm->Move(playerID, teamID, moveTimeInMilliseconds, angle);
+}
+
+/*bool Logic::Rebuild(THUAI8::ConstructionType constructionType)
 {
     logger->debug("Called Rebuild");
     return pComm->Rebuild(playerID, teamID, constructionType);
@@ -375,7 +381,13 @@ void Logic::LoadBufferSelf(const protobuf::MessageToClient& message)
     {
         for (const auto& item : message.obj_message())
         {
-            if (Proto2THUAI8::messageOfObjDict[item.message_of_obj_case()] == THUAI8::MessageOfObj::CharacterMessage && item.character_message().player_id() == playerID)
+            if (Proto2THUAI8::messageOfObjDict[item.message_of_obj_case()] == THUAI8::MessageOfObj::CharacterMessage && item.character_message().player_id() == playerID && item.character_message().team_id() == teamID)
+            {
+                bufferState->characterSelf = Proto2THUAI8::Protobuf2THUAI8Character(item.character_message());
+                bufferState->characters.push_back(bufferState->characterSelf);
+                logger->debug("Load Self Character!");
+            }
+            else if (Proto2THUAI8::messageOfObjDict[item.message_of_obj_case()] == THUAI8::MessageOfObj::CharacterMessage && item.character_message().player_id() != playerID && item.character_message().team_id() == teamID)
             {
                 bufferState->characterSelf = Proto2THUAI8::Protobuf2THUAI8Character(item.character_message());
                 bufferState->characters.push_back(bufferState->characterSelf);
@@ -787,5 +799,223 @@ void Logic::LoadBufferCase(const protobuf::MessageOfObj& item)
             default:
                 break;
         }
+    }
+}
+void Logic::LoadBuffer(const protobuf::MessageToClient& message)
+{
+    // 将消息读入到buffer中
+    {
+        std::lock_guard<std::mutex> lock(mtxBuffer);
+
+        // 清空原有信息
+        bufferState->characters.clear();
+        bufferState->enemyCharacters.clear();
+        bufferState->guids.clear();
+        bufferState->allGuids.clear();
+        logger->info("Buffer cleared!");
+        // 读取新的信息
+        for (const auto& obj : message.obj_message())
+            if (Proto2THUAI8::messageOfObjDict[obj.message_of_obj_case()] == THUAI8::MessageOfObj::CharacterMessage)
+            {
+                bufferState->allGuids.push_back(obj.character_message().guid());
+                if (obj.character_message().team_id() == teamID)
+                    bufferState->guids.push_back(obj.character_message().guid());
+            }
+        bufferState->gameInfo = Proto2THUAI8::Protobuf2THUAI8GameInfo(message.all_message());
+        LoadBufferSelf(message);
+        if (playerType == THUAI8::PlayerType::Character && !bufferState->characterSelf)
+        {
+            logger->info("exit for nullSelf");
+            return;
+        }
+        for (const auto& item : message.obj_message())
+            LoadBufferCase(item);
+    }
+    if (asynchronous)
+    {
+        {
+            std::lock_guard<std::mutex> lock(mtxState);
+            std::swap(currentState, bufferState);
+            counterState = counterBuffer;
+            logger->info("Update State!");
+        }
+        freshed = true;
+    }
+    else
+    {
+        bufferUpdated = true;
+    }
+    counterBuffer++;
+    // 唤醒其他线程
+    cvBuffer.notify_one();
+}
+void Logic::Update() noexcept
+{
+    if (!asynchronous)
+    {
+        std::unique_lock<std::mutex> lock(mtxBuffer);
+        // 缓冲区被更新之后才可以使用
+        cvBuffer.wait(lock, [this]()
+                      { return bufferUpdated; });
+        {
+            std::lock_guard<std::mutex> stateLock(mtxState);
+            std::swap(currentState, bufferState);
+            counterState = counterBuffer;
+        }
+        bufferUpdated = false;
+        logger->info("Update State!");
+    }
+}
+void Logic::Wait() noexcept
+{
+    freshed = false;
+    {
+        std::unique_lock<std::mutex> lock(mtxBuffer);
+        cvBuffer.wait(lock, [this]()
+                      { return freshed.load(); });
+    }
+}
+
+void Logic::UnBlockAI()
+{
+    {
+        std::lock_guard<std::mutex> lock(mtxAI);
+        AIStart = true;
+    }
+    cvAI.notify_one();
+}
+
+int32_t Logic::GetCounter() const
+{
+    std::unique_lock<std::mutex> lock(mtxState);
+    return counterState;
+}
+
+std::vector<int64_t> Logic::GetPlayerGUIDs() const
+{
+    std::unique_lock<std::mutex> lock(mtxState);
+    return currentState->guids;
+}
+
+bool Logic::TryConnection()
+{
+    logger->info("Try to connect to server...");
+    return pComm->TryConnection(playerID, teamID);
+}
+
+bool Logic::HaveView(int32_t x, int32_t y, int32_t newX, int32_t newY, int32_t viewRange, std::vector<std::vector<THUAI8::PlaceType>>& map) const
+{
+    std::unique_lock<std::mutex> lock(mtxState);
+    return AssistFunction::HaveView(x, y, newX, newY, viewRange, map);
+}
+
+void Logic::Main(CreateAIFunc createAI, std::string IP, std::string port, bool file, bool print, bool warnOnly, bool side_flag)
+{
+    // 建立日志组件
+    auto fileLogger = std::make_shared<spdlog::sinks::basic_file_sink_mt>(fmt::format("logs/logic-{}-{}-log.txt", playerID, teamID), true);
+    auto printLogger = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+    std::string pattern = "[logic] [%H:%M:%S.%e] [%l] %v";
+    fileLogger->set_pattern(pattern);
+    printLogger->set_pattern(pattern);
+    if (file)
+        fileLogger->set_level(spdlog::level::debug);
+    else
+        fileLogger->set_level(spdlog::level::off);
+    if (print)
+        printLogger->set_level(spdlog::level::info);
+    else
+        printLogger->set_level(spdlog::level::off);
+    if (warnOnly)
+        printLogger->set_level(spdlog::level::warn);
+    logger = std::make_unique<spdlog::logger>("logicLogger", spdlog::sinks_init_list{fileLogger, printLogger});
+
+    logger->flush_on(spdlog::level::warn);
+    // 打印当前的调试信息
+    logger->info("*********Basic Info*********");
+    logger->info("asynchronous: {}", asynchronous);
+    logger->info("server: {}:{}", IP, port);
+    if (playerType == THUAI8::PlayerType::Character)
+        logger->info("Character ID: {}", playerID);
+    logger->info("player team: {}", THUAI8::playerTeamDict[playerTeam]);
+    logger->info("****************************");
+
+    // 建立与服务器之间通信的组件
+    pComm = std::make_unique<Communication>(IP, port);
+
+    // 构造timer
+    if (playerType == THUAI8::PlayerType::Character)
+    {
+        if (!file && !print)
+            timer = std::make_unique<CharacterAPI>(*this);
+        else
+
+            timer = std::make_unique<CharacterDebugAPI>(*this, file, print, warnOnly, playerID, teamID);
+    }
+    else
+    {
+        if (!file && !print)
+            timer = std::make_unique<TeamAPI>(*this);
+        else
+            timer = std::make_unique<TeamDebugAPI>(*this, file, print, warnOnly, playerID, teamID);
+    }
+
+    // 构造AI线程
+    auto AIThread = [&]()
+    {
+        try
+        {
+            {
+                std::unique_lock<std::mutex> lock(mtxAI);
+                cvAI.wait(lock, [this]()
+                          { return AIStart; });
+            }
+            auto ai = createAI(playerID);
+
+            while (AILoop)
+            {
+                if (asynchronous)
+                {
+                    Wait();
+                    timer->StartTimer();
+                    timer->Play(*ai);
+                    timer->EndTimer();
+                }
+                else
+                {
+                    Update();
+                    timer->StartTimer();
+                    timer->Play(*ai);
+                    timer->EndTimer();
+                }
+            }
+        }
+        catch (const std::exception& e)
+        {
+            std::cerr << "C++ Exception: " << e.what() << std::endl;
+        }
+        catch (...)
+        {
+            std::cerr << "Unknown Exception!" << std::endl;
+        }
+    };
+
+    // 连接服务器
+    if (TryConnection())
+    {
+        logger->info("Connect to the server successfully, AI thread will be started.");
+        tAI = std::thread(AIThread);
+        if (tAI.joinable())
+        {
+            logger->info("Join the AI thread!");
+            // 首先开启处理消息的线程
+            ProcessMessage();
+            tAI.join();
+        }
+    }
+    else
+    {
+        AILoop = false;
+        logger->error("Connect to the server failed, AI thread will not be started.");
+        return;
     }
 }

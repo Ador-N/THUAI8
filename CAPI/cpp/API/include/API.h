@@ -59,14 +59,14 @@ public:
     virtual bool EndAllAction() = 0;
 
     // ICharacterAPI使用的部分
-    virtual bool Move(int32_t speed, int64_t time, double angle) = 0;
+    virtual bool Move(int64_t moveTimeInMilliseconds, double angle) = 0;
     virtual bool Recover(int64_t recover) = 0;
     virtual bool Produce() = 0;
     virtual bool Rebuild(THUAI8::ConstructionType constructionType) = 0;
     virtual bool Construct(THUAI8::ConstructionType constructionType) = 0;
-    virtual bool Skill_Attack(double angle) = 0;
-    virtual bool Common_Attack(double angle) = 0;
-    [[nodiscard]] virtual bool HaveView(int32_t selfX, int32_t selfY, int32_t targetX, int32_t targetY, int32_t viewRange) const = 0;
+    virtual bool Skill_Attack(int64_t playerID, int64_t teamID, double angle) = 0;
+    virtual bool Common_Attack(int64_t teamID, int64_t PlayerID, int64_t attackedTeamID, int64_t attackedPlayerID) = 0;
+    [[nodiscard]] virtual bool HaveView(int32_t x, int32_t y, int32_t newX, int32_t newY, int32_t viewRange, std::vector<std::vector<THUAI8::PlaceType>>& map) const = 0;
 
     // Team使用的部分
     virtual bool Recycle(int32_t playerID) = 0;
@@ -127,13 +127,13 @@ public:
 class ICharacterAPI : public IAPI
 {
 public:
-    virtual std::future<bool> Move(int32_t speed, int64_t timeInMilliseconds, double angleInRadian) = 0;
-    //向特定方向移动
-    virtual std::future<bool> MoveRight(int32_t speed, int64_t timeInMilliseconds) = 0;
-    virtual std::future<bool> MoveUp(int32_t speed, int64_t timeInMilliseconds) = 0;
-    virtual std::future<bool> MoveLeft(int32_t speed, int64_t timeInMilliseconds) = 0;
-    virtual std::future<bool> MoveDown(int32_t speed, int64_t timeInMilliseconds) = 0;
-    virtual std::future<bool> Skill_Attack(int64_t attackedPlayerID) = 0;
+    virtual std::future<bool> Move(int64_t moveTimeInMilliseconds, double angle) = 0;
+    // 向特定方向移动
+    virtual std::future<bool> MoveRight(int64_t timeInMilliseconds) = 0;
+    virtual std::future<bool> MoveUp(int64_t timeInMilliseconds) = 0;
+    virtual std::future<bool> MoveLeft(int64_t timeInMilliseconds) = 0;
+    virtual std::future<bool> MoveDown(int64_t timeInMilliseconds) = 0;
+    virtual std::future<bool> Skill_Attack(double angle) = 0;
     virtual std::future<bool> Common_Attack(int64_t attackedPlayerID) = 0;
     virtual std::future<bool> Recover(int64_t recover) = 0;
     virtual std::future<bool> Harvest() = 0;
@@ -185,13 +185,13 @@ public:
     bool Wait() override;
     std::future<bool> EndAllAction() override;
 
-    std::future<bool> Move(int32_t speed, int64_t timeInMilliseconds, double angleInRadian) override;
-    std::future<bool> MoveRight(int32_t speed, int64_t timeInMilliseconds) override;
-    std::future<bool> MoveUp(int32_t speed, int64_t timeInMilliseconds) override;
-    std::future<bool> MoveLeft(int32_t speed, int64_t timeInMilliseconds) override;
-    std::future<bool> MoveDown(int32_t speed, int64_t timeInMilliseconds) override;
-    std::future<bool> Skill_Attack(double angleInRadian) override;
-    std::future<bool> Common_Attack(double angleInRadian) override;
+    std::future<bool> Move(int64_t moveTimeInMilliseconds, double angle) override;
+    std::future<bool> MoveRight(int64_t timeInMilliseconds) override;
+    std::future<bool> MoveUp(int64_t timeInMilliseconds) override;
+    std::future<bool> MoveLeft(int64_t timeInMilliseconds) override;
+    std::future<bool> MoveDown(int64_t timeInMilliseconds) override;
+    std::future<bool> Skill_Attack(double angle) override;
+    std::future<bool> Common_Attack(int64_t attackedPlayerID) override;
     std::future<bool> Recover(int64_t recover) override;
     std::future<bool> Harvest() override;
     std::future<bool> Rebuild(THUAI8::ConstructionType constructionType) override;
@@ -298,13 +298,13 @@ public:
     [[nodiscard]] int32_t GetFrameCount() const override;
     std::future<bool> EndAllAction() override;
 
-    std::future<bool> Move(int32_t speed, int64_t timeInMilliseconds, double angleInRadian) override;
-    std::future<bool> MoveRight(int32_t speed, int64_t timeInMilliseconds) override;
-    std::future<bool> MoveUp(int32_t speed, int64_t timeInMilliseconds) override;
-    std::future<bool> MoveLeft(int32_t speed, int64_t timeInMilliseconds) override;
-    std::future<bool> MoveDown(int32_t speed, int64_t timeInMilliseconds) override;
-    std::future<bool> Skill_Attack(double angleInRadian) override;
-    std::future<bool> Common_Attack(double angleInRadian) override;
+    std::future<bool> Move(int64_t moveTimeInMilliseconds, double angle) override;
+    std::future<bool> MoveRight(int64_t timeInMilliseconds) override;
+    std::future<bool> MoveUp(int64_t timeInMilliseconds) override;
+    std::future<bool> MoveLeft(int64_t timeInMilliseconds) override;
+    std::future<bool> MoveDown(int64_t timeInMilliseconds) override;
+    std::future<bool> Skill_Attack(double angle) override;
+    std::future<bool> Common_Attack(int64_t attackedPlayerID) override;
     std::future<bool> Recover(int64_t recover) override;
     std::future<bool> Harvest() override;
     std::future<bool> Rebuild(THUAI8::ConstructionType constructionType) override;

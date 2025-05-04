@@ -111,14 +111,9 @@ private:
     bool EndAllAction();
 
     // ICharacterAPI使用的部分
-    bool Move(int32_t speed, int64_t timeInMilliseconds, double angleInRadian) = 0;
-    // 向特定方向移动
-    bool MoveRight(int32_t speed, int64_t timeInMilliseconds);
-    bool MoveUp(int32_t speed, int64_t timeInMilliseconds);
-    bool MoveLeft(int32_t speed, int64_t timeInMilliseconds);
-    bool MoveDown(int32_t speed, int64_t timeInMilliseconds);
-    bool Skill_Attack(int32_t playerID, int32_t teamID, double angleInRadian);
-    bool Common_Attack(int32_t playerID, int32_t teamID, int32_t ATKplayerID, int32_t ATKteamID);
+    bool Move(int64_t moveTimeInMilliseconds, double angle);
+    bool Skill_Attack(int64_t playerID, int64_t teamID, double angleInRadian);
+    bool Common_Attack(int64_t playerID, int64_t teamID, int64_t ATKplayerID, int64_t ATKteamID);
     bool Recover(int64_t recover);
     bool Produce();
     bool Rebuild(THUAI8::ConstructionType constructionType);

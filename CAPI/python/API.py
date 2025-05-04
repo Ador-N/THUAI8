@@ -45,7 +45,7 @@ class CharacterAPI(ICharacterAPI, IGameTimer):
         return self.__logic.GetMessage()
 
     def GetFrameCount(self) -> int:
-        return self.__logic.GetCounter()
+        return self.__logic.GetFrameCount()
 
     def Wait(self) -> bool:
         return self.__logic.WaitThread()
@@ -100,26 +100,29 @@ class CharacterAPI(ICharacterAPI, IGameTimer):
     # endregion
 
     # region 实现ICharacterAPI接口
-    def Move(self, speed: int, timeInMilliseconds: int, angleInRadian: float) -> Future[bool]:
-        return self.__pool.submit(self.__logic.Move, speed, timeInMilliseconds, angleInRadian)
+    def Move(self, timeInMilliseconds: int, angleInRadian: float) -> Future[bool]:
+        return self.__pool.submit(self.__logic.Move, timeInMilliseconds, angleInRadian)
 
-    def MoveRight(self, speed: int, timeInMilliseconds: int) -> Future[bool]:
-        return self.Move(speed, timeInMilliseconds, math.pi/2)
+    def MoveRight(self, timeInMilliseconds: int) -> Future[bool]:
+        return self.Move(timeInMilliseconds, math.pi / 2)
 
-    def MoveUp(self, speed: int, timeInMilliseconds: int) -> Future[bool]:
-        return self.Move(speed, timeInMilliseconds, math.pi)
+    def MoveUp(self, timeInMilliseconds: int) -> Future[bool]:
+        return self.Move(timeInMilliseconds, math.pi)
 
-    def MoveLeft(self, speed: int, timeInMilliseconds: int) -> Future[bool]:
-        return self.Move(speed, timeInMilliseconds, math.pi*3/2)
+    def MoveLeft(self, timeInMilliseconds: int) -> Future[bool]:
+        return self.Move(timeInMilliseconds, math.pi * 3 / 2)
 
-    def MoveDown(self, speed: int, timeInMilliseconds: int) -> Future[bool]:
-        return self.Move(speed, timeInMilliseconds, 0)
+    def MoveDown(self, timeInMilliseconds: int) -> Future[bool]:
+        return self.Move(timeInMilliseconds, 0)
 
-    def Skill_Attack(self, attackedPlayerID: int) -> Future[bool]:
-        return self.__pool.submit(self.__logic.Skill_Attack, attackedPlayerID)
+    def Skill_Attack(self, angle: float) -> Future[bool]:
+        return self.__pool.submit(self.__logic.Skill_Attack, angle)
 
     def Common_Attack(self, attackedPlayerID: int) -> Future[bool]:
-        return self.__pool.submit(self.__logic.Common_Attack, attackedPlayerID)
+        return self.__pool.submit(
+            self.__logic.Common_Attack,
+            attackedPlayerID,
+        )
 
     def Recover(self, recover: int) -> Future[bool]:
         return self.__pool.submit(self.__logic.Recover, recover)
@@ -176,7 +179,7 @@ class TeamAPI(ITeamAPI, IGameTimer):
         return self.__logic.GetMessage()
 
     def GetFrameCount(self) -> int:
-        return self.__logic.GetCounter()
+        return self.__logic.GetFrameCount()
 
     def Wait(self) -> bool:
         return self.__logic.WaitThread()

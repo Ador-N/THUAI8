@@ -18,7 +18,7 @@ Communication::Communication(std::string sIP, std::string sPort)
     THUAI8Stub = protobuf::AvailableService::NewStub(channel);
 }
 
-bool Communication::Move(int32_t speed, int32_t playerID, int32_t teamID, int64_t time, double angle)
+bool Communication::Move(int32_t characterID, int32_t teamID, int64_t moveTimeInMilliseconds, double angle)
 {
     {
         std::lock_guard<std::mutex> lock(mtxLimit);
@@ -204,8 +204,8 @@ bool Communication::Common_Attack(int32_t playerID, int32_t toPlayerID, int32_t 
     }
     protobuf::BoolRes commonAttackResult;
     ClientContext context;
-    auto request = THUAI82Proto::THUAI82ProtobufCommonAttackMsg(playerID, toPlayerID, teamID);
-    auto status = THUAI8Stub->CommonAttack(&context, request, &commonAttackResult);
+    auto request = THUAI8Proto::THUAI82ProtobufAttackMsg(playerID, teamID, attacked_playerID, attacked_teamID);
+    auto status = THUAI8Stub->Attack(&context, request, &commonAttackResult);
     if (status.ok())
         return commonAttackResult.act_success();
     else
@@ -268,7 +268,7 @@ bool Communication::Recycle(int32_t playerID, int32_t teamID)
 // 技能必中，angle改toplayerID
 
 // 待修改，不知道要不要toteamID
-bool Communication::Skill_Attack(int32_t playerID, int32_t toPlayerID, int32_t teamID)
+bool Communication::Skill_Attack(int64_t playerID, int64_t teamID, double angle)
 {
     {
         std::lock_guard<std::mutex> lock(mtxLimit);
@@ -318,7 +318,7 @@ bool Communication::AddPlayer(int32_t playerID, int32_t teamID, THUAI8::Characte
                 haveNewMessage = true;
                 {
                     std::lock_guard<std::mutex> lock(mtxLimit);
-                    counter++;
+                    counter = 0;
                     counterMove = 0;
                 }
             }
