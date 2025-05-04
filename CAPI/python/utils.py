@@ -482,15 +482,9 @@ class THUAI82Proto:
 
     @staticmethod
     def THUAI82ProtobufMoveMsg(
-<<<<<<< HEAD:CAPI/python/utils.py
-        character: int, angle: float, time: int, team: int
-    ) -> MessageType.MoveMsg:
-        moveMsg = MessageType.MoveMsg()
-=======
         team: int, character: int, time: int, angle: float
     ) -> Message2Server.MoveMsg:
         moveMsg = Message2Server.MoveMsg()
->>>>>>> 5a9477a584e532a2c785cc7dfeceeb608eacfb19:CAPI/python/PyAPI/utils.py
         moveMsg.character_id = character
         moveMsg.angle = angle
         moveMsg.time_in_milliseconds = time
@@ -536,14 +530,6 @@ class THUAI82Proto:
 
     @staticmethod
     def THUAI82ProtobufCharacterMsg(
-<<<<<<< HEAD:CAPI/python/utils.py
-        character_id: int, team_id: int, character_type: THUAI8.CharacterType
-    ) -> MessageType.CharacterMsg:
-        characterMsg = MessageType.CharacterMsg()
-        characterMsg.character_id = character_id
-        characterMsg.team_id = team_id
-        characterMsg.character_type = character_type
-=======
         character_id: int,
         team_id: int,
         character_type: THUAI8.CharacterType,
@@ -554,7 +540,6 @@ class THUAI82Proto:
         characterMsg.team_id = team_id
         characterMsg.character_type = THUAI82Proto.characterTypeDict[character_type]
         characterMsg.side_flag = side_flag
->>>>>>> 5a9477a584e532a2c785cc7dfeceeb608eacfb19:CAPI/python/PyAPI/utils.py
         return characterMsg
 
     @staticmethod
